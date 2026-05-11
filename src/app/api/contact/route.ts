@@ -26,14 +26,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const inquiry = await createInquiry({
-    name: parsed.data.name,
-    email: parsed.data.email,
-    phone: parsed.data.phone || "",
-    message: parsed.data.message,
-    vehicleId: parsed.data.vehicleId || null,
-  });
+  try {
+    const inquiry = await createInquiry({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      phone: parsed.data.phone || "",
+      message: parsed.data.message,
+      vehicleId: parsed.data.vehicleId || null,
+    });
 
-  revalidatePath("/", "layout");
-  return NextResponse.json({ ok: true, id: inquiry.id }, { status: 201 });
+    revalidatePath("/", "layout");
+    return NextResponse.json({ ok: true, id: inquiry.id }, { status: 201 });
+  } catch (error: any) {
+    console.error("Error creating inquiry:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create inquiry" },
+      { status: 500 }
+    );
+  }
 }

@@ -217,7 +217,7 @@ export async function createInquiry(input: InquiryInput): Promise<Inquiry> {
   const status: Inquiry["status"] = input.status || "new";
 
   if (isSupabaseConfigured()) {
-    const sb = getSupabase()!; // public insert allowed by RLS
+    const sb = getSupabaseAdmin()!; // Use Admin to avoid any RLS/Anon issues
     const { data, error } = await sb
       .from(T_INQUIRIES)
       .insert({
