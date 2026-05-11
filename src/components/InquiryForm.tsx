@@ -16,9 +16,10 @@ export default function InquiryForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
     setStatus("sending");
     setErrorMsg("");
-    const fd = new FormData(e.currentTarget);
+    const fd = new FormData(form);
     const payload = {
       name: String(fd.get("name") || ""),
       email: String(fd.get("email") || ""),
@@ -38,7 +39,7 @@ export default function InquiryForm({
         throw new Error(j.error || "Could not send your message");
       }
       setStatus("ok");
-      e.currentTarget.reset();
+      form.reset();
     } catch (err: any) {
       setStatus("error");
       setErrorMsg(err.message || "Something went wrong");

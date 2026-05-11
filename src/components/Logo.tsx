@@ -9,10 +9,10 @@ export default function Logo({
   className?: string;
 }) {
   const heightClass = {
-    sm: "h-12 sm:h-14",
-    md: "h-16 sm:h-20",
-    lg: "h-24 sm:h-28",
-    xl: "h-32 sm:h-40",
+    sm: "h-14 sm:h-16",
+    md: "h-20 sm:h-24",
+    lg: "h-28 sm:h-32",
+    xl: "h-36 sm:h-44",
   }[size];
 
   return (
