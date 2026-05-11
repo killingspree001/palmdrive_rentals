@@ -32,6 +32,7 @@ export function getSupabase(): SupabaseClient | null {
   if (_anon) return _anon;
   _anon = createClient(URL!, ANON_KEY!, {
     auth: { persistSession: false },
+    global: { fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }) },
   });
   return _anon;
 }
@@ -47,6 +48,7 @@ export function getSupabaseAdmin(): SupabaseClient | null {
   if (_admin) return _admin;
   _admin = createClient(URL!, SERVICE_KEY, {
     auth: { persistSession: false },
+    global: { fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }) },
   });
   return _admin;
 }
