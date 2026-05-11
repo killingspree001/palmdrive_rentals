@@ -1,23 +1,15 @@
 // Unified data access. Routes & pages import from here.
-// If Firebase env vars are present, all reads/writes go to Firestore.
-// Otherwise, the in-memory demo store is used so the app remains runnable.
+// If Supabase env vars are present, all reads/writes go to Postgres via
+// @supabase/supabase-js. Otherwise, the in-memory demo store is used so the
+// app remains runnable.
+//
+// DB columns are snake_case (Postgres convention); we map to/from camelCase here.
 
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
-import { getDb, isFirebaseConfigured } from "../firebase";
+  getSupabase,
+  getSupabaseAdmin,
+  isSupabaseConfigured,
+} from "../supabase";
 import { newId, store } from "./memoryStore";
 import {
   DEFAULT_SETTINGS,
@@ -28,52 +20,93 @@ import {
   type VehicleInput,
 } from "./types";
 
-const VEHICLES = "vehicles";
-const INQUIRIES = "inquiries";
-const SETTINGS = "settings";
-const SETTINGS_DOC = "main";
+const T_VEHICLES = "vehicles";
+const T_INQUIRIES = "inquiries";
+const T_SETTINGS = "settings";
+const SETTINGS_ID = "main";
 
-// ---- helpers --------------------------------------------------------------
+// ---- mappers --------------------------------------------------------------
 
-function tsToIso(v: unknown): string {
-  if (v instanceof Timestamp) return v.toDate().toISOString();
-  if (typeof v === "string") return v;
-  if (v instanceof Date) return v.toISOString();
-  return new Date().toISOString();
-}
-
-function vehicleFromDoc(id: string, raw: any): Vehicle {
+function vehicleFromRow(row: any): Vehicle {
   return {
-    id,
-    name: raw.name ?? "",
-    category: raw.category ?? "",
-    pricePerDay: Number(raw.pricePerDay ?? 0),
-    seats: Number(raw.seats ?? 4),
-    bags: Number(raw.bags ?? 2),
-    transmission: raw.transmission ?? "Automatic",
-    fuel: raw.fuel ?? "Gasoline",
-    description: raw.description ?? "",
-    features: raw.features ?? "",
-    imageUrl: raw.imageUrl ?? "",
-    featured: !!raw.featured,
-    available: raw.available !== false,
-    createdAt: tsToIso(raw.createdAt),
-    updatedAt: tsToIso(raw.updatedAt),
+    id: row.id,
+    name: row.name ?? "",
+    category: row.category ?? "",
+    pricePerDay: Number(row.price_per_day ?? 0),
+    seats: Number(row.seats ?? 4),
+    bags: Number(row.bags ?? 2),
+    transmission: row.transmission ?? "Automatic",
+    fuel: row.fuel ?? "Gasoline",
+    description: row.description ?? "",
+    features: row.features ?? "",
+    imageUrl: row.image_url ?? "",
+    featured: !!row.featured,
+    available: row.available !== false,
+    createdAt: row.created_at ?? new Date().toISOString(),
+    updatedAt: row.updated_at ?? new Date().toISOString(),
   };
 }
 
-function inquiryFromDoc(id: string, raw: any): Inquiry {
-  const status = raw.status === "read" || raw.status === "responded" ? raw.status : "new";
+function vehicleToRow(input: Partial<VehicleInput>) {
+  const out: Record<string, unknown> = {};
+  if (input.name !== undefined) out.name = input.name;
+  if (input.category !== undefined) out.category = input.category;
+  if (input.pricePerDay !== undefined) out.price_per_day = input.pricePerDay;
+  if (input.seats !== undefined) out.seats = input.seats;
+  if (input.bags !== undefined) out.bags = input.bags;
+  if (input.transmission !== undefined) out.transmission = input.transmission;
+  if (input.fuel !== undefined) out.fuel = input.fuel;
+  if (input.description !== undefined) out.description = input.description;
+  if (input.features !== undefined) out.features = input.features;
+  if (input.imageUrl !== undefined) out.image_url = input.imageUrl;
+  if (input.featured !== undefined) out.featured = input.featured;
+  if (input.available !== undefined) out.available = input.available;
+  return out;
+}
+
+function inquiryFromRow(row: any): Inquiry {
+  const status =
+    row.status === "read" || row.status === "responded" ? row.status : "new";
   return {
-    id,
-    name: raw.name ?? "",
-    email: raw.email ?? "",
-    phone: raw.phone ?? "",
-    message: raw.message ?? "",
-    vehicleId: raw.vehicleId ?? null,
+    id: row.id,
+    name: row.name ?? "",
+    email: row.email ?? "",
+    phone: row.phone ?? "",
+    message: row.message ?? "",
+    vehicleId: row.vehicle_id ?? null,
     status,
-    createdAt: tsToIso(raw.createdAt),
+    createdAt: row.created_at ?? new Date().toISOString(),
   };
+}
+
+function settingsFromRow(row: any): SiteSettings {
+  if (!row) return DEFAULT_SETTINGS;
+  return {
+    companyName: row.company_name ?? DEFAULT_SETTINGS.companyName,
+    tagline: row.tagline ?? DEFAULT_SETTINGS.tagline,
+    addressLine: row.address_line ?? DEFAULT_SETTINGS.addressLine,
+    city: row.city ?? DEFAULT_SETTINGS.city,
+    state: row.state ?? DEFAULT_SETTINGS.state,
+    zip: row.zip ?? DEFAULT_SETTINGS.zip,
+    phone: row.phone ?? DEFAULT_SETTINGS.phone,
+    email: row.email ?? DEFAULT_SETTINGS.email,
+    mapQuery: row.map_query ?? DEFAULT_SETTINGS.mapQuery,
+    updatedAt: row.updated_at ?? new Date().toISOString(),
+  };
+}
+
+function settingsToRow(input: Partial<SiteSettings>) {
+  const out: Record<string, unknown> = {};
+  if (input.companyName !== undefined) out.company_name = input.companyName;
+  if (input.tagline !== undefined) out.tagline = input.tagline;
+  if (input.addressLine !== undefined) out.address_line = input.addressLine;
+  if (input.city !== undefined) out.city = input.city;
+  if (input.state !== undefined) out.state = input.state;
+  if (input.zip !== undefined) out.zip = input.zip;
+  if (input.phone !== undefined) out.phone = input.phone;
+  if (input.email !== undefined) out.email = input.email;
+  if (input.mapQuery !== undefined) out.map_query = input.mapQuery;
+  return out;
 }
 
 function sortVehicles(vs: Vehicle[]): Vehicle[] {
@@ -90,13 +123,13 @@ export async function listVehicles(opts?: {
 }): Promise<Vehicle[]> {
   const availableOnly = opts?.availableOnly ?? false;
 
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const q = availableOnly
-      ? query(collection(db, VEHICLES), where("available", "==", true))
-      : collection(db, VEHICLES);
-    const snap = await getDocs(q);
-    return sortVehicles(snap.docs.map((d) => vehicleFromDoc(d.id, d.data())));
+  if (isSupabaseConfigured()) {
+    const sb = getSupabase()!;
+    let q = sb.from(T_VEHICLES).select("*");
+    if (availableOnly) q = q.eq("available", true);
+    const { data, error } = await q;
+    if (error) throw error;
+    return sortVehicles((data || []).map(vehicleFromRow));
   }
 
   const all = Array.from(store().vehicles.values());
@@ -104,27 +137,32 @@ export async function listVehicles(opts?: {
 }
 
 export async function getVehicle(id: string): Promise<Vehicle | null> {
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const snap = await getDoc(doc(db, VEHICLES, id));
-    return snap.exists() ? vehicleFromDoc(snap.id, snap.data()) : null;
+  if (isSupabaseConfigured()) {
+    const sb = getSupabase()!;
+    const { data, error } = await sb
+      .from(T_VEHICLES)
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? vehicleFromRow(data) : null;
   }
   return store().vehicles.get(id) || null;
 }
 
 export async function createVehicle(input: VehicleInput): Promise<Vehicle> {
-  const now = new Date().toISOString();
-
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const ref = await addDoc(collection(db, VEHICLES), {
-      ...input,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    return { ...input, id: ref.id, createdAt: now, updatedAt: now };
+  if (isSupabaseConfigured()) {
+    const sb = getSupabaseAdmin()!;
+    const { data, error } = await sb
+      .from(T_VEHICLES)
+      .insert(vehicleToRow(input))
+      .select()
+      .single();
+    if (error) throw error;
+    return vehicleFromRow(data);
   }
 
+  const now = new Date().toISOString();
   const id = newId();
   const v: Vehicle = { ...input, id, createdAt: now, updatedAt: now };
   store().vehicles.set(id, v);
@@ -135,12 +173,16 @@ export async function updateVehicle(
   id: string,
   patch: Partial<VehicleInput>
 ): Promise<Vehicle | null> {
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const ref = doc(db, VEHICLES, id);
-    await updateDoc(ref, { ...patch, updatedAt: serverTimestamp() });
-    const snap = await getDoc(ref);
-    return snap.exists() ? vehicleFromDoc(snap.id, snap.data()) : null;
+  if (isSupabaseConfigured()) {
+    const sb = getSupabaseAdmin()!;
+    const { data, error } = await sb
+      .from(T_VEHICLES)
+      .update({ ...vehicleToRow(patch), updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data ? vehicleFromRow(data) : null;
   }
 
   const cur = store().vehicles.get(id);
@@ -151,9 +193,10 @@ export async function updateVehicle(
 }
 
 export async function deleteVehicle(id: string): Promise<boolean> {
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    await deleteDoc(doc(db, VEHICLES, id));
+  if (isSupabaseConfigured()) {
+    const sb = getSupabaseAdmin()!;
+    const { error } = await sb.from(T_VEHICLES).delete().eq("id", id);
+    if (error) throw error;
     return true;
   }
   return store().vehicles.delete(id);
@@ -162,11 +205,14 @@ export async function deleteVehicle(id: string): Promise<boolean> {
 // ---- inquiries ------------------------------------------------------------
 
 export async function listInquiries(): Promise<Inquiry[]> {
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const q = query(collection(db, INQUIRIES), orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => inquiryFromDoc(d.id, d.data()));
+  if (isSupabaseConfigured()) {
+    const sb = getSupabaseAdmin()!;
+    const { data, error } = await sb
+      .from(T_INQUIRIES)
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(inquiryFromRow);
   }
   return Array.from(store().inquiries.values()).sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt)
@@ -174,19 +220,27 @@ export async function listInquiries(): Promise<Inquiry[]> {
 }
 
 export async function createInquiry(input: InquiryInput): Promise<Inquiry> {
-  const now = new Date().toISOString();
   const status: Inquiry["status"] = input.status || "new";
 
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const ref = await addDoc(collection(db, INQUIRIES), {
-      ...input,
-      status,
-      createdAt: serverTimestamp(),
-    });
-    return { ...input, id: ref.id, status, createdAt: now };
+  if (isSupabaseConfigured()) {
+    const sb = getSupabase()!; // public insert allowed by RLS
+    const { data, error } = await sb
+      .from(T_INQUIRIES)
+      .insert({
+        name: input.name,
+        email: input.email,
+        phone: input.phone || "",
+        message: input.message,
+        vehicle_id: input.vehicleId || null,
+        status,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return inquiryFromRow(data);
   }
 
+  const now = new Date().toISOString();
   const id = newId();
   const inq: Inquiry = { ...input, id, status, createdAt: now };
   store().inquiries.set(id, inq);
@@ -197,12 +251,16 @@ export async function updateInquiryStatus(
   id: string,
   status: Inquiry["status"]
 ): Promise<Inquiry | null> {
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const ref = doc(db, INQUIRIES, id);
-    await updateDoc(ref, { status });
-    const snap = await getDoc(ref);
-    return snap.exists() ? inquiryFromDoc(snap.id, snap.data()) : null;
+  if (isSupabaseConfigured()) {
+    const sb = getSupabaseAdmin()!;
+    const { data, error } = await sb
+      .from(T_INQUIRIES)
+      .update({ status })
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data ? inquiryFromRow(data) : null;
   }
 
   const cur = store().inquiries.get(id);
@@ -213,9 +271,10 @@ export async function updateInquiryStatus(
 }
 
 export async function deleteInquiry(id: string): Promise<boolean> {
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    await deleteDoc(doc(db, INQUIRIES, id));
+  if (isSupabaseConfigured()) {
+    const sb = getSupabaseAdmin()!;
+    const { error } = await sb.from(T_INQUIRIES).delete().eq("id", id);
+    if (error) throw error;
     return true;
   }
   return store().inquiries.delete(id);
@@ -224,25 +283,15 @@ export async function deleteInquiry(id: string): Promise<boolean> {
 // ---- site settings --------------------------------------------------------
 
 export async function getSettings(): Promise<SiteSettings> {
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const snap = await getDoc(doc(db, SETTINGS, SETTINGS_DOC));
-    if (snap.exists()) {
-      const raw = snap.data();
-      return {
-        companyName: raw.companyName ?? DEFAULT_SETTINGS.companyName,
-        tagline: raw.tagline ?? DEFAULT_SETTINGS.tagline,
-        addressLine: raw.addressLine ?? DEFAULT_SETTINGS.addressLine,
-        city: raw.city ?? DEFAULT_SETTINGS.city,
-        state: raw.state ?? DEFAULT_SETTINGS.state,
-        zip: raw.zip ?? DEFAULT_SETTINGS.zip,
-        phone: raw.phone ?? DEFAULT_SETTINGS.phone,
-        email: raw.email ?? DEFAULT_SETTINGS.email,
-        mapQuery: raw.mapQuery ?? DEFAULT_SETTINGS.mapQuery,
-        updatedAt: tsToIso(raw.updatedAt),
-      };
-    }
-    return DEFAULT_SETTINGS;
+  if (isSupabaseConfigured()) {
+    const sb = getSupabase()!;
+    const { data, error } = await sb
+      .from(T_SETTINGS)
+      .select("*")
+      .eq("id", SETTINGS_ID)
+      .maybeSingle();
+    if (error) throw error;
+    return settingsFromRow(data);
   }
   return store().settings;
 }
@@ -250,20 +299,29 @@ export async function getSettings(): Promise<SiteSettings> {
 export async function updateSettings(
   patch: Partial<SiteSettings>
 ): Promise<SiteSettings> {
-  const now = new Date().toISOString();
-
-  if (isFirebaseConfigured()) {
-    const db = getDb()!;
-    const ref = doc(db, SETTINGS, SETTINGS_DOC);
-    await setDoc(
-      ref,
-      { ...patch, updatedAt: serverTimestamp() },
-      { merge: true }
-    );
-    return await getSettings();
+  if (isSupabaseConfigured()) {
+    const sb = getSupabaseAdmin()!;
+    const { data, error } = await sb
+      .from(T_SETTINGS)
+      .upsert(
+        {
+          id: SETTINGS_ID,
+          ...settingsToRow(patch),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      )
+      .select()
+      .single();
+    if (error) throw error;
+    return settingsFromRow(data);
   }
 
-  const next: SiteSettings = { ...store().settings, ...patch, updatedAt: now };
+  const next: SiteSettings = {
+    ...store().settings,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
   store().settings = next;
   return next;
 }

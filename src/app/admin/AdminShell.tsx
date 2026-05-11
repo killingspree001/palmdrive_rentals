@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
+import {
+  getAuthBrowserClient,
+  isSupabaseConfiguredOnClient,
+} from "@/lib/supabase-browser";
 
 const NAV = [
   { href: "/admin/fleet", label: "Fleet Inventory", icon: "car" },
@@ -20,6 +24,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   }
 
   async function logout() {
+    if (isSupabaseConfiguredOnClient()) {
+      const sb = getAuthBrowserClient();
+      if (sb) await sb.auth.signOut();
+    }
+    // Always hit the API route too — it clears cookies + the legacy demo cookie
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/admin/login");
     router.refresh();

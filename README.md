@@ -1,12 +1,12 @@
 # Palmdrive Rentals
 
-Premium car rental website for Fort Lauderdale — Next.js 14 + Tailwind + **Firebase** (Firestore).
+Premium car rental website for Fort Lauderdale — Next.js 14 + Tailwind + **Supabase** (Postgres + Storage).
 
 Fully responsive (mobile + desktop). Public site for browsing the fleet and sending inquiries; admin portal for managing vehicles, replying to inquiries, and editing site contact info.
 
 ---
 
-## Quick start (demo mode — no Firebase needed yet)
+## Quick start (demo mode — no Supabase needed yet)
 
 ```bash
 npm install
@@ -15,9 +15,9 @@ npm run dev
 
 Open <http://localhost:3000>.
 
-The app ships in **demo mode** — it boots with a seeded in-memory store of seven sample vehicles + default site settings, so the frontend is fully clickable without any Firebase setup. Data persists for the life of the dev server, then resets when you restart it.
+The app ships in **demo mode** — it boots with a seeded in-memory store of seven sample vehicles + default site settings, so the frontend is fully clickable without any Supabase setup. Data persists for the life of the dev server, then resets when you restart it.
 
-When you're ready to wire up the real backend, fill in the Firebase env vars (below) and the app automatically switches to Firestore. No code changes required.
+When you're ready to wire up the real backend, fill in the Supabase env vars (below) and the app automatically switches to Postgres. No code changes required.
 
 ### Default admin login
 
@@ -29,49 +29,44 @@ When you're ready to wire up the real backend, fill in the Firebase env vars (be
 
 ---
 
-## Connecting your Firebase project
+## Connecting your Supabase project
 
-1. Create a Firebase project at <https://console.firebase.google.com>.
-2. **Firestore**: enable it (Native mode is fine).
-3. **Storage** (optional, for vehicle image uploads): enable it. Otherwise upload via URL paste only.
-4. **Web app**: create a Web app in your project settings to get the config keys.
-5. Copy `.env.example` → `.env` (already done locally) and replace the `YOUR_...` placeholders with the values from the Firebase console:
-   ```
-   NEXT_PUBLIC_FIREBASE_API_KEY="..."
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="<project>.firebaseapp.com"
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID="<project-id>"
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="<project>.appspot.com"
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
-   NEXT_PUBLIC_FIREBASE_APP_ID="..."
-   ```
-6. Restart `npm run dev`.
-7. The app now reads/writes Firestore collections:
-   - `vehicles` — your fleet
-   - `inquiries` — contact form submissions
-   - `settings/main` — site contact info edited from `/admin/settings`
+### 1. Create a Supabase project
+- Go to <https://supabase.com> → **Sign in** → **New project**
+- Name it `palmdrive-rentals` (or anything), pick a strong DB password, choose the region closest to Fort Lauderdale (`us-east-1` or `us-east-2`)
+- Wait ~2 minutes for it to provision
 
-The first time around your `vehicles` collection will be empty — log into `/admin/fleet` and add a few, or paste seed docs from `src/lib/data/seed.ts` into the Firestore console.
+### 2. Run the schema
+- In your project sidebar: **SQL Editor** → **New query**
+- Open `supabase/schema.sql` from this repo, copy the whole thing, paste, click **Run**
+- This creates the `vehicles`, `inquiries`, `settings` tables, adds RLS policies, seeds the seven sample vehicles, and creates the `vehicle-images` storage bucket
 
-### Firestore security rules (suggested baseline)
+### 3. Make the storage bucket public (one click)
+- Sidebar: **Storage** → click `vehicle-images` → toggle **Public bucket** on
+- (Or it should already be public from the schema script — verify in the UI)
 
-```js
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{db}/documents {
-    // Anyone can read the public vehicle catalog and site settings
-    match /vehicles/{id}     { allow read: if true; }
-    match /settings/{id}     { allow read: if true; }
+### 4. Grab your API keys
+- Sidebar: **Project Settings** → **API**
+- Copy these three values:
 
-    // Anyone can SUBMIT an inquiry, but no one can read/list (admins read via Admin SDK)
-    match /inquiries/{id}    {
-      allow create: if true;
-      allow read, update, delete: if false;
-    }
-  }
-}
+| Supabase value | Goes into `.env` as |
+|---|---|
+| **Project URL** | `NEXT_PUBLIC_SUPABASE_URL` |
+| **anon public** key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| **service_role** key (under "Reveal") | `SUPABASE_SERVICE_ROLE_KEY` ⚠️ server-only |
+
+> ⚠️ The **service_role** key bypasses Row Level Security. Never expose it in a `NEXT_PUBLIC_` variable, never commit it, never paste it into client code. Our `/api/*` routes use it server-side only.
+
+### 5. Restart the dev server
+Press **Ctrl+C** in the terminal running `npm run dev`, then run again:
+```bash
+npm run dev
 ```
 
-> The current admin auth is a simple JWT cookie keyed on `ADMIN_EMAIL`/`ADMIN_PASSWORD` (good for staging/demo). For production, swap to **Firebase Auth + Admin SDK** by replacing `verifyAdminCredentials` in `src/lib/auth.ts` and verifying ID tokens server-side. Then your Firestore rules can grant `request.auth.uid != null` access to admin-only writes.
+### 6. Verify
+- Visit <http://localhost:3000/fleet> — you should see the seven seeded vehicles loaded from Postgres.
+- Log into `/admin/login` → add a vehicle → check Supabase **Table Editor → vehicles** — your new row is there.
+- Submit a contact form on `/contact` → check **Table Editor → inquiries**.
 
 ---
 
@@ -81,7 +76,7 @@ service cloud.firestore {
 src/
 ├── app/
 │   ├── page.tsx                     # Home
-│   ├── fleet/page.tsx               # Browse fleet (no category filter)
+│   ├── fleet/page.tsx               # Browse fleet
 │   ├── fleet/[id]/page.tsx          # Vehicle detail + inquiry form
 │   ├── contact/page.tsx             # Contact page (reads from settings)
 │   ├── admin/login/                 # Admin login
@@ -91,7 +86,7 @@ src/
 │   └── api/                         # REST API routes
 ├── components/                      # Header, Footer, Logo, VehicleCard, InquiryForm...
 ├── lib/
-│   ├── firebase.ts                  # Firebase init (lazy, env-gated)
+│   ├── supabase.ts                  # Supabase client (anon + admin, env-gated)
 │   ├── auth.ts                      # Admin JWT cookie sessions
 │   └── data/                        # Unified data layer
 │       ├── index.ts                 # Public API: listVehicles, createVehicle, ...
@@ -99,9 +94,11 @@ src/
 │       ├── seed.ts                  # Sample vehicles
 │       └── types.ts                 # Vehicle / Inquiry / SiteSettings types
 └── middleware.ts                    # Protects /admin/* (except /admin/login)
+supabase/
+└── schema.sql                       # One-shot setup script for Supabase
 public/
 ├── logo.png                         # Brand logo
-└── uploads/                         # Vehicle images uploaded via admin
+└── uploads/                         # Local image fallback (demo mode only)
 ```
 
 ---
@@ -123,7 +120,7 @@ All return JSON. Admin routes require a valid `palmdrive_admin` cookie set via `
 | DELETE | `/api/inquiries/[id]` | admin | Delete |
 | GET  | `/api/settings`        | public | Get site contact info |
 | PUT  | `/api/settings`        | admin  | Update site contact info |
-| POST | `/api/upload`          | admin  | Multipart image upload → `/uploads/<filename>` |
+| POST | `/api/upload`          | admin  | Image upload (Supabase Storage in prod, `/public/uploads` in demo) |
 | POST | `/api/auth/login`      | public | Login (sets HttpOnly cookie, 7 days) |
 | POST | `/api/auth/logout`     | public | Clear cookie |
 
@@ -131,8 +128,8 @@ All return JSON. Admin routes require a valid `palmdrive_admin` cookie set via `
 
 ## Deployment notes
 
-- **Vercel / Netlify**: works out of the box once Firebase env vars are set.
-- **Image uploads**: `/api/upload` writes to the local `public/uploads` folder. On serverless platforms (Vercel), swap this to Firebase Storage by editing `src/app/api/upload/route.ts` to use the `firebase/storage` SDK and return the public download URL.
+- **Vercel / Netlify**: works out of the box once Supabase env vars are set.
+- **Image uploads**: in production (Supabase configured), uploads go straight to your `vehicle-images` bucket and the public URL is stored in `vehicles.image_url`.
 - **Sessions** use HttpOnly cookies signed via `jose`. The same `AUTH_SECRET` must be present in every environment.
 
 ## Scripts
@@ -148,7 +145,7 @@ All return JSON. Admin routes require a valid `palmdrive_admin` cookie set via `
 
 - **Next.js 14** (App Router) — frontend + API in one project
 - **Tailwind CSS 3** — responsive design system
-- **Firebase 10** (Firestore + Storage) — production data layer
+- **Supabase 2** — Postgres database + Storage
 - **bcryptjs** + **jose** — admin password + JWT cookie sessions
 - **Zod** — request validation on every API route
 

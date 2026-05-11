@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  getAuthBrowserClient,
+  isSupabaseConfiguredOnClient,
+} from "@/lib/supabase-browser";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -14,19 +18,29 @@ export default function LoginForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("email") || "");
+    const password = String(fd.get("password") || "");
+
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: String(fd.get("email") || ""),
-          password: String(fd.get("password") || ""),
-        }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || "Login failed");
+      if (isSupabaseConfiguredOnClient()) {
+        // Production path: Supabase Auth
+        const sb = getAuthBrowserClient();
+        if (!sb) throw new Error("Supabase client unavailable");
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw new Error(error.message);
+      } else {
+        // Demo fallback: env-based password check via API route
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.error || "Login failed");
+        }
       }
       router.replace(from);
       router.refresh();
@@ -40,7 +54,9 @@ export default function LoginForm() {
   return (
     <form onSubmit={handle} className="space-y-4">
       <div>
-        <label className="label" htmlFor="email">Admin Email</label>
+        <label className="label" htmlFor="email">
+          Admin Email
+        </label>
         <input
           id="email"
           name="email"
@@ -52,7 +68,9 @@ export default function LoginForm() {
         />
       </div>
       <div>
-        <label className="label" htmlFor="password">Password</label>
+        <label className="label" htmlFor="password">
+          Password
+        </label>
         <input
           id="password"
           name="password"
