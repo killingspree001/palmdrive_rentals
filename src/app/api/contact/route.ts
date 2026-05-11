@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createInquiry } from "@/lib/data";
+import { revalidatePath } from "next/cache";
 
 const InquirySchema = z.object({
   name: z.string().min(1).max(120),
@@ -33,5 +34,6 @@ export async function POST(req: NextRequest) {
     vehicleId: parsed.data.vehicleId || null,
   });
 
+  revalidatePath("/", "layout");
   return NextResponse.json({ ok: true, id: inquiry.id }, { status: 201 });
 }

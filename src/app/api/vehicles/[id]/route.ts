@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getVehicle, updateVehicle, deleteVehicle } from "@/lib/data";
 import { readSession } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
 const UpdateSchema = z.object({
   name: z.string().min(1).max(120).optional(),
@@ -49,6 +50,7 @@ export async function PUT(
   }
   const v = await updateVehicle(params.id, parsed.data);
   if (!v) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  revalidatePath("/", "layout");
   return NextResponse.json(v);
 }
 
@@ -60,5 +62,6 @@ export async function DELETE(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const ok = await deleteVehicle(params.id);
   if (!ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  revalidatePath("/", "layout");
   return NextResponse.json({ ok: true });
 }

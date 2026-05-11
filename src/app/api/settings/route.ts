@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSettings, updateSettings } from "@/lib/data";
 import { readSession } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
 const PatchSchema = z.object({
   companyName: z.string().min(1).max(120).optional(),
@@ -41,5 +42,6 @@ export async function PUT(req: NextRequest) {
     );
   }
   const updated = await updateSettings(parsed.data);
+  revalidatePath("/", "layout");
   return NextResponse.json(updated);
 }
