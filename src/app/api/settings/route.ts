@@ -13,6 +13,10 @@ const PatchSchema = z.object({
   phone: z.string().max(40).optional(),
   email: z.string().email().max(200).optional(),
   mapQuery: z.string().max(300).optional(),
+  heroImage: z.string().max(500).optional(),
+  heroTitle: z.string().max(120).optional(),
+  heroSubtitle: z.string().max(120).optional(),
+  heroDescription: z.string().max(500).optional(),
 });
 
 export async function GET() {

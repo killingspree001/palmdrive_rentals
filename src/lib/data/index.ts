@@ -91,6 +91,10 @@ function settingsFromRow(row: any): SiteSettings {
     phone: row.phone ?? DEFAULT_SETTINGS.phone,
     email: row.email ?? DEFAULT_SETTINGS.email,
     mapQuery: row.map_query ?? DEFAULT_SETTINGS.mapQuery,
+    heroImage: row.hero_image ?? DEFAULT_SETTINGS.heroImage,
+    heroTitle: row.hero_title ?? DEFAULT_SETTINGS.heroTitle,
+    heroSubtitle: row.hero_subtitle ?? DEFAULT_SETTINGS.heroSubtitle,
+    heroDescription: row.hero_description ?? DEFAULT_SETTINGS.heroDescription,
     updatedAt: row.updated_at ?? new Date().toISOString(),
   };
 }
@@ -106,6 +110,10 @@ function settingsToRow(input: Partial<SiteSettings>) {
   if (input.phone !== undefined) out.phone = input.phone;
   if (input.email !== undefined) out.email = input.email;
   if (input.mapQuery !== undefined) out.map_query = input.mapQuery;
+  if (input.heroImage !== undefined) out.hero_image = input.heroImage;
+  if (input.heroTitle !== undefined) out.hero_title = input.heroTitle;
+  if (input.heroSubtitle !== undefined) out.hero_subtitle = input.heroSubtitle;
+  if (input.heroDescription !== undefined) out.hero_description = input.heroDescription;
   return out;
 }
 

@@ -46,6 +46,10 @@ export type SiteSettings = {
   phone: string;
   email: string;
   mapQuery: string;
+  heroImage: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
   updatedAt: string;
 };
 
@@ -60,5 +64,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   phone: "+1 (954) 555-0199",
   email: "concierge@palmdriverentals.com",
   mapQuery: "990 South Federal Highway, Fort Lauderdale, FL 33316",
+  heroImage: "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=1400&q=80",
+  heroTitle: "Coastal Prestige",
+  heroSubtitle: "Featured this week",
+  heroDescription: "Hand-picked luxury & sport vehicles for the South Florida coast.",
   updatedAt: new Date(0).toISOString(),
 };

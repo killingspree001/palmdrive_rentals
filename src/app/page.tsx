@@ -1,12 +1,13 @@
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
 import VehicleCard from "@/components/VehicleCard";
-import { listVehicles } from "@/lib/data";
+import { listVehicles, getSettings } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const all = await listVehicles({ availableOnly: true });
+  const settings = await getSettings();
   const vehicles = all.slice(0, 6);
 
   return (
@@ -69,17 +70,17 @@ export default async function HomePage() {
             <div className="relative overflow-hidden rounded-3xl shadow-card">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=1400&q=80"
-                alt="Palm-lined coastal drive"
+                src={settings.heroImage}
+                alt={settings.heroTitle}
                 className="h-[420px] w-full object-cover lg:h-[520px]"
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/80 to-transparent p-6 text-white">
                 <div className="text-xs uppercase tracking-wider text-white/70">
-                  Featured this week
+                  {settings.heroSubtitle}
                 </div>
-                <div className="mt-1 text-2xl font-bold">Coastal Prestige</div>
+                <div className="mt-1 text-2xl font-bold">{settings.heroTitle}</div>
                 <div className="text-sm text-white/80">
-                  Hand-picked luxury & sport vehicles for the South Florida coast.
+                  {settings.heroDescription}
                 </div>
               </div>
             </div>

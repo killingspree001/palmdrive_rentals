@@ -46,11 +46,15 @@ create table if not exists public.settings (
   phone         text not null default '',
   email         text not null default '',
   map_query     text not null default '',
+  hero_image    text not null default 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=1400&q=80',
+  hero_title    text not null default 'Coastal Prestige',
+  hero_subtitle text not null default 'Featured this week',
+  hero_description text not null default 'Hand-picked luxury & sport vehicles for the South Florida coast.',
   updated_at    timestamptz not null default now()
 );
 
 -- Seed the single settings row (id='main')
-insert into public.settings (id, company_name, tagline, address_line, city, state, zip, phone, email, map_query)
+insert into public.settings (id, company_name, tagline, address_line, city, state, zip, phone, email, map_query, hero_image, hero_title, hero_subtitle, hero_description)
 values (
   'main',
   'Palmdrive Rentals',
@@ -61,7 +65,11 @@ values (
   '33316',
   '+1 (954) 555-0199',
   'concierge@palmdriverentals.com',
-  '990 South Federal Highway, Fort Lauderdale, FL 33316'
+  '990 South Federal Highway, Fort Lauderdale, FL 33316',
+  'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=1400&q=80',
+  'Coastal Prestige',
+  'Featured this week',
+  'Hand-picked luxury & sport vehicles for the South Florida coast.'
 )
 on conflict (id) do nothing;
 
