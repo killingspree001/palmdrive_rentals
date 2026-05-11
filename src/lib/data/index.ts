@@ -31,14 +31,7 @@ function vehicleFromRow(row: any): Vehicle {
   return {
     id: row.id,
     name: row.name ?? "",
-    category: row.category ?? "",
-    pricePerDay: Number(row.price_per_day ?? 0),
-    seats: Number(row.seats ?? 4),
-    bags: Number(row.bags ?? 2),
-    transmission: row.transmission ?? "Automatic",
-    fuel: row.fuel ?? "Gasoline",
     description: row.description ?? "",
-    features: row.features ?? "",
     imageUrl: row.image_url ?? "",
     featured: !!row.featured,
     available: row.available !== false,
@@ -50,14 +43,7 @@ function vehicleFromRow(row: any): Vehicle {
 function vehicleToRow(input: Partial<VehicleInput>) {
   const out: Record<string, unknown> = {};
   if (input.name !== undefined) out.name = input.name;
-  if (input.category !== undefined) out.category = input.category;
-  if (input.pricePerDay !== undefined) out.price_per_day = input.pricePerDay;
-  if (input.seats !== undefined) out.seats = input.seats;
-  if (input.bags !== undefined) out.bags = input.bags;
-  if (input.transmission !== undefined) out.transmission = input.transmission;
-  if (input.fuel !== undefined) out.fuel = input.fuel;
   if (input.description !== undefined) out.description = input.description;
-  if (input.features !== undefined) out.features = input.features;
   if (input.imageUrl !== undefined) out.image_url = input.imageUrl;
   if (input.featured !== undefined) out.featured = input.featured;
   if (input.available !== undefined) out.available = input.available;
@@ -120,7 +106,7 @@ function settingsToRow(input: Partial<SiteSettings>) {
 function sortVehicles(vs: Vehicle[]): Vehicle[] {
   return [...vs].sort((a, b) => {
     if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    return b.pricePerDay - a.pricePerDay;
+    return a.name.localeCompare(b.name);
   });
 }
 

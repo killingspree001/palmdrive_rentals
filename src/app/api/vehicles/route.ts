@@ -6,14 +6,7 @@ import { revalidatePath } from "next/cache";
 
 const VehicleSchema = z.object({
   name: z.string().min(1).max(120),
-  category: z.string().max(60).default(""),
-  pricePerDay: z.coerce.number().int().min(0).max(100000),
-  seats: z.coerce.number().int().min(1).max(20).default(4),
-  bags: z.coerce.number().int().min(0).max(20).default(2),
-  transmission: z.string().max(40).default("Automatic"),
-  fuel: z.string().max(40).default("Gasoline"),
   description: z.string().max(2000).default(""),
-  features: z.string().max(500).default(""),
   imageUrl: z.string().max(1000).default(""),
   featured: z.boolean().default(false),
   available: z.boolean().default(true),

@@ -6,13 +6,7 @@ import { useRouter } from "next/navigation";
 
 const EMPTY: Partial<Vehicle> = {
   name: "",
-  pricePerDay: 250,
-  seats: 5,
-  bags: 3,
-  transmission: "Automatic",
-  fuel: "Gasoline",
   description: "",
-  features: "",
   imageUrl: "",
   featured: false,
   available: true,
@@ -142,56 +136,7 @@ export default function FleetManager({
             />
           </Field>
 
-          <Field label="Price per Day ($)">
-            <input
-              required
-              type="number"
-              min={0}
-              className="input"
-              value={form.pricePerDay ?? 0}
-              onChange={(e) =>
-                setForm({ ...form, pricePerDay: Number(e.target.value) })
-              }
-            />
-          </Field>
 
-          <Field label="Transmission">
-            <input
-              className="input"
-              value={form.transmission || ""}
-              onChange={(e) => setForm({ ...form, transmission: e.target.value })}
-              placeholder="Automatic"
-            />
-          </Field>
-
-          <Field label="Seats">
-            <input
-              type="number"
-              min={1}
-              className="input"
-              value={form.seats ?? 4}
-              onChange={(e) => setForm({ ...form, seats: Number(e.target.value) })}
-            />
-          </Field>
-
-          <Field label="Bags">
-            <input
-              type="number"
-              min={0}
-              className="input"
-              value={form.bags ?? 2}
-              onChange={(e) => setForm({ ...form, bags: Number(e.target.value) })}
-            />
-          </Field>
-
-          <Field label="Fuel" className="sm:col-span-2">
-            <input
-              className="input"
-              value={form.fuel || ""}
-              onChange={(e) => setForm({ ...form, fuel: e.target.value })}
-              placeholder="Gasoline / Electric / Hybrid"
-            />
-          </Field>
 
           <Field label="Description" className="sm:col-span-2">
             <textarea
@@ -205,14 +150,6 @@ export default function FleetManager({
             />
           </Field>
 
-          <Field label="Features (comma separated)" className="sm:col-span-2">
-            <input
-              className="input"
-              value={form.features || ""}
-              onChange={(e) => setForm({ ...form, features: e.target.value })}
-              placeholder="0-60 in 3.8s, Premium Sound, Heated Seats"
-            />
-          </Field>
 
           <Field label="Vehicle Image" className="sm:col-span-2">
             <div className="space-y-3">
@@ -326,12 +263,6 @@ export default function FleetManager({
                   </div>
                   <div className="mt-1 text-base font-bold text-navy">
                     {v.name}
-                  </div>
-                  <div className="mt-1 text-xs text-navy/60">
-                    {v.transmission} · {v.seats} seats · {v.fuel}
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-terracotta">
-                    ${v.pricePerDay}/day
                   </div>
                 </div>
                 <div className="flex gap-2">

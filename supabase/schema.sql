@@ -9,14 +9,7 @@
 create table if not exists public.vehicles (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
-  category      text default '',
-  price_per_day integer not null default 0,
-  seats         integer not null default 4,
-  bags          integer not null default 2,
-  transmission  text not null default 'Automatic',
-  fuel          text not null default 'Gasoline',
   description   text not null default '',
-  features      text not null default '',
   image_url     text not null default '',
   featured      boolean not null default false,
   available     boolean not null default true,
@@ -106,37 +99,30 @@ create policy "inquiries insert for everyone"
 -- =============================================================
 -- 3. SEED VEHICLES (only if the table is currently empty)
 -- =============================================================
-insert into public.vehicles (name, category, price_per_day, seats, bags, transmission, fuel, description, features, image_url, featured)
+insert into public.vehicles (name, description, image_url, featured)
 select * from (values
-  ('Porsche 911 Carrera',           'Sports Car',  450, 2, 1, 'Automatic', 'Gasoline',
+  ('Porsche 911 Carrera',
    'Iconic silhouette, blistering performance, and refined interior. The ultimate driving experience for the coastal highways.',
-   '0-60 in 3.8s,Premium Sound,Sport Chrono,Heated Seats',
    'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=80', true),
-  ('Tesla Model S Plaid',           'Electric',    320, 5, 3, 'Automatic', 'Electric',
+  ('Tesla Model S Plaid',
    'Tri-motor all-wheel drive electric sedan with 1,020 horsepower and a 17-inch cinematic display.',
-   '0-60 in 1.99s,Autopilot,Glass Roof,Premium Audio',
    'https://images.unsplash.com/photo-1617704548623-340376564e68?w=1200&q=80', false),
-  ('Range Rover Autobiography',     'Luxury SUV',  380, 5, 4, 'Automatic', 'Hybrid',
+  ('Range Rover Autobiography',
    'Effortless luxury with semi-aniline leather, rear executive class seats, and class-leading off-road capability.',
-   'Massaging Seats,Meridian Audio,Pano Roof,Air Suspension',
    'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=1200&q=80', false),
-  ('BMW M4 Competition Convertible','Convertible', 290, 4, 2, 'Automatic', 'Gasoline',
+  ('BMW M4 Competition Convertible',
    '503-horsepower twin-turbo six with a retractable soft top — built for sun-soaked coastal cruising.',
-   '0-60 in 3.6s,M Sport Brakes,Harman Kardon,Heated Steering',
    'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1200&q=80', false),
-  ('Rivian R1S',                    'Electric SUV',310, 7, 5, 'Automatic', 'Electric',
+  ('Rivian R1S',
    'Three-row, all-electric adventure SUV with quad-motor torque vectoring and 316-mile range.',
-   'AWD,Off-Road Mode,Glass Roof,Tow Mode',
    'https://images.unsplash.com/photo-1669228431771-c12c4ed64bb1?w=1200&q=80', false),
-  ('Range Rover Velar',             'Luxury SUV',  285, 5, 3, 'Automatic', 'Hybrid',
+  ('Range Rover Velar',
    'Sleek, minimalist design meets refined performance. The most road-focused Range Rover.',
-   'Touch Pro Duo,Hybrid,Meridian Audio,Heated Seats',
    'https://images.unsplash.com/photo-1606220838315-056192d5e927?w=1200&q=80', false),
-  ('Mercedes-Benz S-Class',         'Sedan',       360, 5, 4, 'Automatic', 'Gasoline',
+  ('Mercedes-Benz S-Class',
    'The benchmark for luxury sedans. Burmester 4D audio, executive rear seats, and silken ride quality.',
-   'Burmester 4D,Massaging Seats,HUD,Night Vision',
    'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1200&q=80', false)
-) as v(name, category, price_per_day, seats, bags, transmission, fuel, description, features, image_url, featured)
+) as v(name, description, image_url, featured)
 where not exists (select 1 from public.vehicles);
 
 -- =============================================================

@@ -4,14 +4,7 @@
 export type Vehicle = {
   id: string;
   name: string;
-  category: string; // kept in schema for future use; not surfaced in UI
-  pricePerDay: number;
-  seats: number;
-  bags: number;
-  transmission: string;
-  fuel: string;
   description: string;
-  features: string; // comma-separated
   imageUrl: string;
   featured: boolean;
   available: boolean;

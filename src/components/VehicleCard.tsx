@@ -27,30 +27,8 @@ export default function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
       </div>
       <div className="flex flex-1 flex-col p-5">
         <h3 className="text-lg font-bold text-navy">{vehicle.name}</h3>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-navy/70">
-          <span>{vehicle.transmission}</span>
-          <span>·</span>
-          <span>{vehicle.seats} Seats</span>
-          {vehicle.fuel && (
-            <>
-              <span>·</span>
-              <span>{vehicle.fuel}</span>
-            </>
-          )}
-        </div>
-        <div className="mt-5 flex items-end justify-between border-t border-navy/10 pt-4">
-          <div>
-            <div className="text-2xl font-bold text-terracotta">
-              ${vehicle.pricePerDay}
-              <span className="ml-1 text-sm font-medium text-navy/60">/day</span>
-            </div>
-            <div className="text-[11px] uppercase tracking-wider text-navy/50">
-              Optional pricing
-            </div>
-          </div>
-          <span className="text-sm font-semibold text-navy group-hover:text-terracotta">
-            View details →
-          </span>
+        <div className="mt-2 text-sm text-navy/70 line-clamp-3">
+          {vehicle.description}
         </div>
       </div>
     </Link>

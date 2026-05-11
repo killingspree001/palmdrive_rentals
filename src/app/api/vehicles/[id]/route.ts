@@ -6,14 +6,7 @@ import { revalidatePath } from "next/cache";
 
 const UpdateSchema = z.object({
   name: z.string().min(1).max(120).optional(),
-  category: z.string().max(60).optional(),
-  pricePerDay: z.coerce.number().int().min(0).max(100000).optional(),
-  seats: z.coerce.number().int().min(1).max(20).optional(),
-  bags: z.coerce.number().int().min(0).max(20).optional(),
-  transmission: z.string().max(40).optional(),
-  fuel: z.string().max(40).optional(),
   description: z.string().max(2000).optional(),
-  features: z.string().max(500).optional(),
   imageUrl: z.string().max(1000).optional(),
   featured: z.boolean().optional(),
   available: z.boolean().optional(),
