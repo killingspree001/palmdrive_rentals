@@ -11,6 +11,7 @@ import {
 const NAV = [
   { href: "/admin/fleet", label: "Fleet Inventory", icon: "car" },
   { href: "/admin/inquiries", label: "Inquiries", icon: "mail" },
+  { href: "/admin/hero", label: "Hero Settings", icon: "image" },
   { href: "/admin/settings", label: "Contact Settings", icon: "cog" },
 ];
 
